@@ -1,26 +1,48 @@
+<button onclick="navigator.clipboard.writeText(`# Hippocrates-Edu
+A Socratic-style educational platform with a chat feature and AI-driven 10x10 grid, built on the Hippocrates AI.
 
-#### File 5: `LICENSE`
-The MIT License, explicitly formatted for copying, tailored for `Hippocrates`.
+## Setup Instructions
+1. Open in Codespaces: Click “Code” > “Codespaces” > “Create Codespaces on main”.
+2. Run the setup script in the Codespaces terminal:
+   \`\`\`bash
+   pip install -r requirements.txt && sudo apt-get install -y nodejs npm && npm install && npm run build && uvicorn app:app --host 0.0.0.0 --port 8000
+   \`\`\`
+3. Open the browser preview (port 8000, click “Ports” > “Open in Browser”) to see the grid and chat for a math lesson.
+4. (Optional) Run the original console version: `python main.py`.
 
-```plaintext
-MIT License
+## Features
+- 10x10 grid visualizing self-organizing AI.
+- Real-time chat with Socratic prompts (e.g., “Solve x + 3 = 7”).
+- Built with FastAPI, React, and SQLAlchemy.
 
-Copyright (c) 2025 Hippocrates
+## License
+MIT License (see `LICENSE`).`)">Copy README.md</button>
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+#### app.py
+```python
+from fastapi import FastAPI, WebSocket, Response
+import json
+from network import Network  # From Hippocrates repo
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+app = FastAPI()
+network = Network(grid_size=10)  # 10x10 grid
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+@app.get("/")
+async def serve_index():
+    with open("build/index.html") as f:
+        return Response(content=f.read(), media_type="text/html")
+
+@app.websocket("/chat")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    while True:
+        data = await websocket.receive_text()
+        user_answer = json.loads(data).get("answer", "")
+        network.update()  # Update grid states
+        states = [[node.state for node in row] for row in network.grid]
+        response = {
+            "question": "Solve x + 3 = 7. Why does it work?",
+            "feedback": "Great, x = 4!" if user_answer == "4" else "Try again!",
+            "grid": states
+        }
+        await websocket.send_json(response)
