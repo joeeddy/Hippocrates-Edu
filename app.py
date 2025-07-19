@@ -4,12 +4,11 @@ from network import Network
 
 app = FastAPI()
 
-# Serve React build folder at root URL
+# Serve React frontend from the build folder
 app.mount("/", StaticFiles(directory="build", html=True), name="static")
 
 network = Network(grid_size=5)
 
-# Grid data endpoint
 @app.get("/api/states")
 async def get_grid_states():
     network.update()
