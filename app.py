@@ -4,7 +4,7 @@ from network import Network
 
 app = FastAPI()
 
-# Serve React frontend from the build folder
+# Serve React frontend from the build directory
 app.mount("/", StaticFiles(directory="build", html=True), name="static")
 
 network = Network(grid_size=5)
