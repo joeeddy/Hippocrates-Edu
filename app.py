@@ -1,14 +1,16 @@
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from network import Network
 
 app = FastAPI()
-network = Network(grid_size=5)  # Adjust size if needed
 
-@app.get("/")
-async def root():
-    return {"message": "Hippocrates-Edu backend is live!"}
+# Serve React build folder at root URL
+app.mount("/", StaticFiles(directory="build", html=True), name="static")
 
-@app.get("/states")
+network = Network(grid_size=5)
+
+# Grid data endpoint
+@app.get("/api/states")
 async def get_grid_states():
     network.update()
     return [[node.state for node in row] for row in network.grid]
