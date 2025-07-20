@@ -1,15 +1,42 @@
+import asyncio
+import socketio
 from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
-from network import Network
+from fastapi.middleware.cors import CORSMiddleware
+import uvicorn
 
+# Create a Socket.IO server
+sio = socketio.AsyncServer(cors_allowed_origins='*')
 app = FastAPI()
 
-# Serve React frontend from the build directory
-app.mount("/", StaticFiles(directory="build", html=True), name="static")
+# Mount the Socket.IO ASGI app
+app = socketio.ASGIApp(sio, app)
 
-network = Network(grid_size=5)
+# Enable CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-@app.get("/api/states")
-async def get_grid_states():
-    network.update()
-    return [[node.state for node in row] for row in network.grid]
+# Background task to emit grid updates
+async def broadcast_grid():
+    while True:
+        # Replace with your real grid data
+        grid_data = {"grid": "sample data"}
+        await sio.emit('grid_update', grid_data)
+        await asyncio.sleep(2)  # every 2 seconds
+
+# Start background task on startup
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(broadcast_grid())
+
+# Simple root endpoint
+@app.get("/")
+async def read_root():
+    return {"message": "FastAPI with Socket.IO server is running."}
+
+if __name__ == "__main__":
+    uvicorn.run("app:app", host="0.0.0.0", port=8000)
